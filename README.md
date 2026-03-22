@@ -104,7 +104,7 @@ Instead of the test agent spending thousands of tokens reading every file and gu
 - **What to try to break**: the medium/low confidence properties
 - **What to skip**: the 12 input-validation tests the developer already wrote
 
-## The Three Innovations
+## The Three Flagship Features
 
 ### 1. Structured Handoff Protocol (SHP)
 
@@ -235,8 +235,6 @@ Create `agents/your-agent.md` following the standard structure (role, responsibi
 - **Not cost-effective for trivial tasks.** The pipeline overhead (spawning multiple agents, writing handoffs) exceeds the benefit for typo fixes, config changes, or single-line edits. Use Claude Code directly for those.
 - **Savings are estimated, not independently benchmarked.** The 30-50% figure is an architectural projection based on how handoffs reduce redundant exploration. Actual savings depend on task complexity, codebase size, and handoff quality.
 - **Quality depends on model compliance.** Agents are instructed to write honest coverage gaps and follow priority ordering, but model behavior is non-deterministic. Agents occasionally produce vague gaps or ignore the handoff protocol. Opus follows instructions more reliably than Sonnet.
-- **Full pipeline takes 10-25 minutes and costs $2-8.** This is a time and cost investment. Quick mode is faster ($1-3, 5-12 minutes) but has fewer stages.
-- **Does not guarantee finding all bugs.** NeuralRelay improves bug detection by targeting known gaps, but cannot prove correctness or catch all issues.
 
 ## Roadmap
 
