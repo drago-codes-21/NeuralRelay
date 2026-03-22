@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://neuralrelay.dev/schemas/review-final.schema.json",
+  "title": "Review Final Handoff",
+  "description": "Review agent output — the final pipeline artifact. Contains the review verdict, quality scores, and meta-assessment of the handoff chain quality itself.",
+  "type": "object",
+  "required": [
+    "handoff_type",
+    "verdict",
+    "summary",
+    "issues",
+    "quality_score",
+    "chain_quality",
+    "total_tokens",
+    "recommendations",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "handoff_type": {
+      "type": "string",
+      "const": "review_final",
+      "description": "Handoff type identifier. Always 'review_final' for this schema."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["approved", "changes_requested", "needs_rework"],
+      "description": "Final review decision. approved: ready to merge. changes_requested: minor fixes needed, no full rework. needs_rework: significant issues, routes back to dev agent."
+    },
+    "summary": {
+      "type": "string",
+      "description": "2-3 sentence assessment of the implementation quality, test coverage, and overall readiness.",
+      "minLength": 20
+    },
+    "issues": {
+      "type": "array",
+      "description": "All issues identified during review, including those already caught by the test agent (with resolution status).",
+      "items": {
+        "type": "object",
+        "required": ["severity", "category", "description", "location", "resolution"],
+        "additionalProperties": false,
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"],
+            "description": "Issue severity level."
+          },
+          "category": {
+            "type": "string",
+            "enum": ["architecture", "security", "performance", "correctness", "style", "testing"],
+            "description": "Issue category for analytics and pattern detection across pipeline runs."
+          },
+          "description": {
+            "type": "string",
+            "description": "Clear description of the issue."
+          },
+          "location": {
+            "type": "string",
+            "description": "File path and line/function where the issue exists."
+          },
+          "resolution": {
+            "type": "string",
+            "description": "How the issue should be resolved. Be specific enough for the dev agent to act on during rework."
+          }
+        }
+      }
+    },
+    "quality_score": {
+      "type": "number",
+      "description": "Overall quality score from 1-10. 1-3: needs rework. 4-6: acceptable with changes. 7-9: good. 10: exceptional.",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "chain_quality": {
+      "type": "object",
+      "description": "Meta-assessment of the handoff chain quality. This is unique to NeuralRelay — it provides feedback on the PROCESS, not just the code. Scores improve the system over time.",
+      "required": ["requirements_clarity", "dev_handoff_completeness", "test_coverage_adequacy"],
+      "additionalProperties": false,
+      "properties": {
+        "requirements_clarity": {
+          "type": "number",
+          "description": "How clear and testable were the BA's requirements? 1-10.",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "dev_handoff_completeness": {
+          "type": "number",
+          "description": "How complete was the dev's handoff? Were coverage_gaps honest? Were properties_believed useful? 1-10.",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "test_coverage_adequacy": {
+          "type": "number",
+          "description": "Did the test agent adequately cover the gaps and verify properties? 1-10.",
+          "minimum": 1,
+          "maximum": 10
+        }
+      }
+    },
+    "total_tokens": {
+      "type": "number",
+      "description": "Sum of tokens used across all agents in this pipeline run.",
+      "minimum": 0
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Process improvement suggestions for future pipeline runs. Focus on actionable changes: 'Add token refresh to CLAUDE.md constraints to avoid rediscovery' not 'improve code quality'.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this handoff was produced."
+    }
+  }
+}

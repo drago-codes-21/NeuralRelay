@@ -1,0 +1,40 @@
+{
+  "handoff_type": "requirements",
+  "task_summary": "Add a /neuralrelay history command that displays the last 5 pipeline runs with quality scores and total token costs, reading from the .neuralrelay/handoffs/ directory.",
+  "acceptance_criteria": [
+    "/neuralrelay history with completed pipeline runs displays a table with columns: chain ID, task summary, verdict, quality score, and total tokens for each of the last 5 runs",
+    "/neuralrelay history with zero completed runs prints 'No pipeline history found' and suggests running /neuralrelay start",
+    "/neuralrelay history with fewer than 5 completed runs displays all available runs without error or padding",
+    "/neuralrelay history with more than 5 completed runs displays only the 5 most recent, sorted newest-first by chain ID",
+    "/neuralrelay history gracefully handles a chain directory that contains incomplete handoffs (missing 04-review-agent.json) by showing the chain with 'incomplete' status instead of crashing",
+    "The total tokens column displays the total_tokens value from the review-final handoff, formatted with comma separators for readability",
+    "/neuralrelay history does not require neuralrelay.yaml to exist — it reads only from the handoff directory"
+  ],
+  "technical_constraints": [
+    "NeuralRelay is a pure markdown/JSON Claude Code plugin — the history command must be a markdown command definition in commands/history.md",
+    "Handoff chain directories use YYYYMMDD-HHmmss naming format, which means alphabetical sorting equals chronological sorting",
+    "The command must use only the tools available to Claude Code commands: Read, Glob, Bash — no external dependencies",
+    "Review-final handoffs follow schemas/review-final.schema.json — read total_tokens, quality_score, and verdict from there",
+    "Requirements handoffs follow schemas/requirements.schema.json — read task_summary from there"
+  ],
+  "out_of_scope": [
+    "Filtering history by date range, verdict, or quality score",
+    "Exporting history to CSV or JSON format",
+    "Showing per-agent token breakdown in the history view (that's what /neuralrelay chain is for)",
+    "Interactive selection or drill-down into individual runs",
+    "Pagination beyond the fixed limit of 5 runs",
+    "Deleting or archiving old pipeline runs"
+  ],
+  "affected_modules": [
+    "commands/history.md",
+    ".claude-plugin/plugin.json"
+  ],
+  "domain_glossary": {
+    "chain ID": "Unique identifier for a pipeline run, formatted as YYYYMMDD-HHmmss timestamp",
+    "handoff chain": "The complete set of handoff JSON files produced by a single pipeline run, stored in .neuralrelay/handoffs/{chain-id}/",
+    "quality score": "1-10 rating from the review agent's review-final handoff, assessing overall implementation quality",
+    "total tokens": "Sum of tokens used across all agents in a pipeline run, recorded in the review-final handoff"
+  },
+  "estimated_complexity": "simple",
+  "timestamp": "2026-03-22T16:00:00Z"
+}

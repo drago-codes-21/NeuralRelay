@@ -1,0 +1,47 @@
+{
+  "handoff_type": "test_to_review",
+  "test_summary": {
+    "total": 9,
+    "passing": 7,
+    "failing": 2,
+    "skipped": 1,
+    "coverage_delta": "N/A — markdown command definition, no code coverage tool applicable"
+  },
+  "property_verification": {
+    "confirmed": [
+      "Output is sorted newest-first by chain ID — created 3 chain directories (20260101-100000, 20260215-143000, 20260322-160000), output correctly shows 20260322 first, then 20260215, then 20260101",
+      "The command works without neuralrelay.yaml present — deleted neuralrelay.yaml, ran /neuralrelay history, output displayed correctly with no errors about missing config"
+    ],
+    "falsified": [
+      "The command correctly displays exactly min(5, total_chains) entries — FALSIFIED with exactly 5 chain directories. The command uses 'ls -r | head -5' but the ls output includes a 'total 0' header line on some systems, so head -5 captures the header plus only 4 directory names, displaying 4 runs instead of 5"
+    ],
+    "inconclusive": [
+      "Incomplete chains are displayed with 'incomplete' status — confirmed that missing 04-review-agent.json shows 'incomplete', but could not test the case where BOTH 01-ba-agent.json and 04-review-agent.json are missing because creating a completely empty chain directory is ambiguous (it might be a pipeline currently starting up vs an abandoned run)"
+    ]
+  },
+  "bugs_found": [
+    {
+      "severity": "medium",
+      "description": "Off-by-one error in chain listing: when the handoff directory contains exactly 5 chain subdirectories, only 4 are displayed. The ls command output includes a summary header line ('total 0' or similar) on some systems, which consumes one of the 5 lines from head -5, leaving only 4 actual directory names.",
+      "location": "commands/history.md — Bash command in step 2 that lists and slices chain directories",
+      "counterexample": "Create exactly 5 chain directories in .neuralrelay/handoffs/ (20260101-100000 through 20260105-100000). Run /neuralrelay history. Expected: 5 rows in the output table. Actual: 4 rows. The oldest chain (20260101-100000) is missing.",
+      "suggested_fix": "Replace 'ls -r | head -5' with 'ls -1r | head -5' (the -1 flag forces one-entry-per-line output without the header) or use 'find .neuralrelay/handoffs -maxdepth 1 -mindepth 1 -type d | sort -r | head -5' which never includes a header line."
+    },
+    {
+      "severity": "low",
+      "description": "Corrupted JSON in a review-final handoff causes the entire command to fail with an opaque error instead of gracefully showing 'incomplete' status for that run. The file-existence check passes (the file exists) but JSON parsing fails.",
+      "location": "commands/history.md — step 3 where 04-review-agent.json is read and parsed",
+      "counterexample": "Create a chain directory with a valid 01-ba-agent.json but a corrupted 04-review-agent.json containing '{invalid json'. Run /neuralrelay history. Expected: row shows with 'error' or 'incomplete' status. Actual: command fails with JSON parse error and no output for any runs.",
+      "suggested_fix": "Wrap the JSON read in a try-parse pattern: attempt to read and parse 04-review-agent.json, and if parsing fails, treat it the same as a missing file (show 'incomplete' status). The command should never crash on bad data in a single chain."
+    }
+  ],
+  "test_files_created": [],
+  "remaining_risks": [
+    "Shell behavior of 'ls' varies across operating systems — the off-by-one fix with '-1' flag should be verified on macOS, Linux, and Windows (Git Bash)",
+    "Performance with >100 chain directories was not tested — marked as skipped because creating 100+ directories for a command test is excessive; the risk is theoretical for v1.0 usage patterns",
+    "Race condition with actively-running pipeline remains untested — would require coordinating a simultaneous pipeline run and history check, which is not feasible in isolated testing"
+  ],
+  "recommended_focus_for_reviewer": "The off-by-one bug in commands/history.md directory listing logic — it's a medium-severity correctness issue that silently drops the oldest run. The fix is straightforward (ls -1r instead of ls -r) but the reviewer should verify the fix works across platforms since NeuralRelay targets Claude Code on macOS, Linux, and Windows.",
+  "tokens_used": 9200,
+  "timestamp": "2026-03-22T16:32:15Z"
+}

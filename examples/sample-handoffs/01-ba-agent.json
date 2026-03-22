@@ -1,0 +1,48 @@
+{
+  "handoff_type": "requirements",
+  "task_summary": "Add OAuth2 login with Google and GitHub providers to the Next.js application, including callback handling, session management, and profile linking.",
+  "acceptance_criteria": [
+    "GET /api/auth/signin/google redirects to Google's OAuth2 authorization endpoint with correct client_id and scope parameters",
+    "GET /api/auth/signin/github redirects to GitHub's OAuth2 authorization endpoint with correct client_id and scope parameters",
+    "GET /api/auth/callback/google exchanges the authorization code for tokens and creates a session, then redirects to /dashboard",
+    "GET /api/auth/callback/github exchanges the authorization code for tokens and creates a session, then redirects to /dashboard",
+    "Invalid or expired authorization codes return a 400 error with a JSON error message, not an unhandled exception",
+    "Authenticated users have a valid session cookie that persists across page reloads until explicit logout",
+    "GET /api/auth/signout clears the session cookie and redirects to the home page",
+    "Users who sign in with both Google and GitHub using the same email address see a single unified account, not duplicate accounts",
+    "The /dashboard page returns 401 for unauthenticated requests and 200 with user profile data for authenticated requests"
+  ],
+  "technical_constraints": [
+    "Next.js 14 App Router — use Route Handlers in app/api/, not Pages Router API routes",
+    "PostgreSQL database with Prisma ORM — user and session schemas must be Prisma models",
+    "Existing session middleware in src/lib/session.ts must be extended, not replaced",
+    "Environment variables for OAuth credentials must be in .env.local (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET)",
+    "All auth endpoints must be CSRF-protected using the existing csrf-token pattern in src/lib/csrf.ts"
+  ],
+  "out_of_scope": [
+    "OAuth providers other than Google and GitHub",
+    "Mobile-responsive layout for login/signup pages",
+    "Two-factor authentication or MFA",
+    "Password-based authentication fallback",
+    "Admin panel for managing OAuth client credentials",
+    "Rate limiting on auth endpoints (handled by existing middleware)"
+  ],
+  "affected_modules": [
+    "src/app/api/auth/signin/[provider]/route.ts",
+    "src/app/api/auth/callback/[provider]/route.ts",
+    "src/app/api/auth/signout/route.ts",
+    "src/lib/oauth.ts",
+    "src/lib/session.ts",
+    "src/lib/tokens.ts",
+    "prisma/schema.prisma",
+    "src/app/dashboard/page.tsx"
+  ],
+  "domain_glossary": {
+    "authorization code": "One-time code returned by OAuth provider after user consent, exchanged for access/refresh tokens server-side",
+    "state parameter": "Random string sent with OAuth request and verified on callback to prevent CSRF attacks",
+    "profile linking": "Merging OAuth accounts that share the same email into a single user record",
+    "session cookie": "HTTP-only cookie containing an encrypted session ID, managed by src/lib/session.ts"
+  },
+  "estimated_complexity": "complex",
+  "timestamp": "2026-03-22T14:30:52Z"
+}

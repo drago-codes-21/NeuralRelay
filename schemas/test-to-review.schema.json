@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://neuralrelay.dev/schemas/test-to-review.schema.json",
+  "title": "Test-to-Review Handoff",
+  "description": "Test agent output consumed by the review agent. Reports which developer-believed properties were confirmed, falsified, or inconclusive, and documents any bugs found with minimal counterexamples.",
+  "type": "object",
+  "required": [
+    "handoff_type",
+    "test_summary",
+    "property_verification",
+    "bugs_found",
+    "test_files_created",
+    "remaining_risks",
+    "recommended_focus_for_reviewer",
+    "tokens_used",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "handoff_type": {
+      "type": "string",
+      "const": "test_to_review",
+      "description": "Handoff type identifier. Always 'test_to_review' for this schema."
+    },
+    "test_summary": {
+      "type": "object",
+      "description": "High-level test execution results.",
+      "required": ["total", "passing", "failing", "skipped", "coverage_delta"],
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "type": "number",
+          "description": "Total number of tests run (including dev's unit tests + new tests).",
+          "minimum": 0
+        },
+        "passing": {
+          "type": "number",
+          "description": "Number of tests passing.",
+          "minimum": 0
+        },
+        "failing": {
+          "type": "number",
+          "description": "Number of tests failing.",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "number",
+          "description": "Number of tests skipped (with reason noted in remaining_risks).",
+          "minimum": 0
+        },
+        "coverage_delta": {
+          "type": "string",
+          "description": "Change in code coverage from this test pass. Format: '+X.X%' or '-X.X%' or 'N/A if no coverage tool configured'."
+        }
+      }
+    },
+    "property_verification": {
+      "type": "object",
+      "description": "Results of testing the developer's properties_believed. Each property is confirmed (passed), falsified (disproven — this is a real bug), or inconclusive (couldn't determine).",
+      "required": ["confirmed", "falsified", "inconclusive"],
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "type": "array",
+          "description": "Properties from the dev handoff that passed testing. These are verified truths about the implementation.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "falsified": {
+          "type": "array",
+          "description": "Properties that were DISPROVEN by testing. Each of these represents a real bug that needs fixing. Cross-reference with bugs_found for details.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inconclusive": {
+          "type": "array",
+          "description": "Properties that couldn't be definitively confirmed or falsified. Include reasoning in remaining_risks.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bugs_found": {
+      "type": "array",
+      "description": "Bugs discovered during testing. Each bug includes a minimal counterexample — the smallest input that triggers the failure.",
+      "items": {
+        "type": "object",
+        "required": ["severity", "description", "location", "counterexample", "suggested_fix"],
+        "additionalProperties": false,
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"],
+            "description": "Bug severity. critical: data loss or security vulnerability. high: feature broken. medium: feature degraded. low: cosmetic or minor."
+          },
+          "description": {
+            "type": "string",
+            "description": "Clear description of the bug and its impact."
+          },
+          "location": {
+            "type": "string",
+            "description": "File path and function/line where the bug occurs."
+          },
+          "counterexample": {
+            "type": "string",
+            "description": "MINIMAL input or scenario that triggers the bug. Smallest possible reproduction case."
+          },
+          "suggested_fix": {
+            "type": "string",
+            "description": "Suggested approach to fix the bug. Be specific enough that the dev agent can act on it."
+          }
+        }
+      }
+    },
+    "test_files_created": {
+      "type": "array",
+      "description": "Paths to test files created by the test agent.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "remaining_risks": {
+      "type": "array",
+      "description": "Risks that couldn't be fully mitigated through testing. Include untestable scenarios, environment-dependent behaviors, and performance concerns.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_focus_for_reviewer": {
+      "type": "string",
+      "description": "Single most important thing the reviewer should examine. Saves the reviewer from having to re-prioritize everything. Be specific: 'the token refresh race condition in src/auth/tokens.ts:45-67 — test is inconclusive'."
+    },
+    "tokens_used": {
+      "type": "number",
+      "description": "Total tokens consumed by the test agent during this stage.",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this handoff was produced."
+    }
+  }
+}

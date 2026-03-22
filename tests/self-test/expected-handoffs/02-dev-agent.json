@@ -1,0 +1,62 @@
+{
+  "handoff_type": "dev_to_test",
+  "files_changed": [
+    {
+      "path": "commands/history.md",
+      "change_type": "created",
+      "summary": "New command definition for /neuralrelay history — reads handoff chains, extracts summary data from requirements and review-final handoffs, displays last 5 runs in a formatted table"
+    },
+    {
+      "path": ".claude-plugin/plugin.json",
+      "change_type": "modified",
+      "summary": "Added history command entry to the commands array referencing commands/history.md"
+    }
+  ],
+  "functions_added": [],
+  "unit_tests_written": {
+    "count": 0,
+    "passing": 0,
+    "files": [],
+    "summary": "No unit tests written — this is a markdown command definition, not executable code. Testing requires running the command against a real handoff directory with various states."
+  },
+  "coverage_gaps": [
+    "No test for corrupted or malformed JSON in handoff files — if 04-review-agent.json contains invalid JSON, the command's Bash-based JSON parsing will fail with an unclear error instead of showing 'incomplete' status",
+    "Behavior with a very large number of chain directories (>100) is untested — the Glob tool returns all matches and the command sorts them all to find the last 5, which could be slow on large handoff histories",
+    "No test for chain directories that exist but are completely empty (no handoff files at all) — this could happen if the process manager creates the directory but the first agent fails before writing anything",
+    "The comma-formatting logic for token numbers has not been tested with values exceeding 999,999 — the Bash printf approach may behave differently across shell implementations"
+  ],
+  "properties_believed": [
+    {
+      "property": "Output is sorted newest-first by chain ID because chain IDs use YYYYMMDD-HHmmss format and reverse-alphabetical sort equals reverse-chronological sort",
+      "confidence": "high",
+      "evidence": "Chain ID format is defined in commands/start.md and the history command uses reverse sort on directory names — YYYYMMDD-HHmmss is lexicographically sortable"
+    },
+    {
+      "property": "The command correctly displays exactly min(5, total_chains) entries — no off-by-one errors in the slice logic",
+      "confidence": "medium",
+      "evidence": "Used head -5 on the sorted directory list in the Bash command, but this was only mentally traced, not tested with exactly 5 directories"
+    },
+    {
+      "property": "Incomplete chains (missing 04-review-agent.json) are displayed with 'incomplete' status rather than causing the command to fail",
+      "confidence": "medium",
+      "evidence": "Added a file-existence check before reading 04-review-agent.json, but the fallback path for missing task_summary (when 01-ba-agent.json is also missing) was not tested"
+    },
+    {
+      "property": "The command works without neuralrelay.yaml present — it only reads from the .neuralrelay/handoffs/ directory",
+      "confidence": "high",
+      "evidence": "The command definition does not reference neuralrelay.yaml anywhere; it only uses Glob on .neuralrelay/handoffs/ and Read on handoff JSON files"
+    }
+  ],
+  "known_risks": [
+    "Shell compatibility: the command instructions use Bash-specific features (printf with comma formatting, associative-like patterns) that may not work identically on all platforms where Claude Code runs",
+    "The 5-run limit is hardcoded in the command definition — if we later want to make it configurable, the command would need to accept an optional argument",
+    "Race condition if a pipeline is actively running while /neuralrelay history is called — a partially-written handoff file could cause JSON parse errors"
+  ],
+  "integration_points": [
+    "Filesystem: .neuralrelay/handoffs/ directory structure",
+    "JSON files: schemas/requirements.schema.json and schemas/review-final.schema.json define the data contracts",
+    ".claude-plugin/plugin.json: must be updated to register the new command"
+  ],
+  "tokens_used": 12800,
+  "timestamp": "2026-03-22T16:15:30Z"
+}

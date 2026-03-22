@@ -1,0 +1,152 @@
+{
+  "handoff_type": "dev_to_test",
+  "files_changed": [
+    {
+      "path": "src/lib/oauth.ts",
+      "change_type": "created",
+      "summary": "Core OAuth2 client — builds authorization URLs, exchanges codes for tokens, fetches user profiles from Google and GitHub APIs"
+    },
+    {
+      "path": "src/lib/tokens.ts",
+      "change_type": "created",
+      "summary": "Token management — stores, retrieves, and refreshes OAuth access/refresh tokens with encrypted-at-rest storage"
+    },
+    {
+      "path": "src/app/api/auth/signin/[provider]/route.ts",
+      "change_type": "created",
+      "summary": "Sign-in route handler — generates state parameter, builds OAuth URL, redirects to provider"
+    },
+    {
+      "path": "src/app/api/auth/callback/[provider]/route.ts",
+      "change_type": "created",
+      "summary": "Callback route handler — validates state, exchanges code for tokens, creates/links user account, creates session"
+    },
+    {
+      "path": "src/app/api/auth/signout/route.ts",
+      "change_type": "created",
+      "summary": "Sign-out route handler — destroys session, clears cookie, redirects to home"
+    },
+    {
+      "path": "src/lib/session.ts",
+      "change_type": "modified",
+      "summary": "Extended with OAuth session data fields (provider, access_token_ref) and profile-linking lookup"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "change_type": "modified",
+      "summary": "Added OAuthAccount model linked to User, storing provider, provider_account_id, access_token, refresh_token, expires_at"
+    },
+    {
+      "path": "src/app/dashboard/page.tsx",
+      "change_type": "modified",
+      "summary": "Added auth check — redirects unauthenticated users, displays user profile for authenticated users"
+    },
+    {
+      "path": "prisma/migrations/20260322_add_oauth_accounts/migration.sql",
+      "change_type": "created",
+      "summary": "Database migration adding oauth_accounts table with unique constraint on (provider, provider_account_id)"
+    }
+  ],
+  "functions_added": [
+    {
+      "name": "buildAuthorizationUrl",
+      "file": "src/lib/oauth.ts",
+      "signature": "buildAuthorizationUrl(provider: 'google' | 'github', state: string): string",
+      "purpose": "Constructs the OAuth2 authorization URL with correct scopes and redirect URI for the given provider"
+    },
+    {
+      "name": "exchangeCodeForTokens",
+      "file": "src/lib/oauth.ts",
+      "signature": "exchangeCodeForTokens(provider: 'google' | 'github', code: string): Promise<OAuthTokens>",
+      "purpose": "Exchanges an authorization code for access and refresh tokens via the provider's token endpoint"
+    },
+    {
+      "name": "fetchUserProfile",
+      "file": "src/lib/oauth.ts",
+      "signature": "fetchUserProfile(provider: 'google' | 'github', accessToken: string): Promise<OAuthProfile>",
+      "purpose": "Fetches the user's profile (email, name, avatar) from the provider's API using the access token"
+    },
+    {
+      "name": "validateOAuthCallback",
+      "file": "src/lib/oauth.ts",
+      "signature": "validateOAuthCallback(params: { state: string; code: string; storedState: string }): boolean",
+      "purpose": "Validates the callback parameters — checks state matches and code is present. Returns boolean, never throws."
+    },
+    {
+      "name": "storeTokens",
+      "file": "src/lib/tokens.ts",
+      "signature": "storeTokens(userId: string, provider: string, tokens: OAuthTokens): Promise<void>",
+      "purpose": "Encrypts and stores OAuth tokens in the database, linked to the user's OAuthAccount record"
+    },
+    {
+      "name": "refreshAccessToken",
+      "file": "src/lib/tokens.ts",
+      "signature": "refreshAccessToken(userId: string, provider: string): Promise<string>",
+      "purpose": "Refreshes an expired access token using the stored refresh token. Returns the new access token."
+    },
+    {
+      "name": "findOrCreateUser",
+      "file": "src/lib/session.ts",
+      "signature": "findOrCreateUser(profile: OAuthProfile, provider: string): Promise<User>",
+      "purpose": "Finds existing user by email for profile linking or creates new user. Links the OAuth account to the user."
+    }
+  ],
+  "unit_tests_written": {
+    "count": 18,
+    "passing": 18,
+    "files": [
+      "src/lib/__tests__/oauth.test.ts",
+      "src/lib/__tests__/tokens.test.ts",
+      "src/lib/__tests__/session.test.ts"
+    ],
+    "summary": "Tests cover URL construction for both providers, code exchange with mocked HTTP, profile fetching, state validation, token storage/retrieval, and findOrCreateUser with existing and new users."
+  },
+  "coverage_gaps": [
+    "Race condition when two concurrent refreshAccessToken calls for the same user execute simultaneously — both may try to use the same refresh token, and if the provider invalidates the old token on first use, the second call will fail with an invalid_grant error",
+    "Token encryption key rotation — storeTokens encrypts with the current key but there's no test for reading tokens encrypted with a previous key after rotation",
+    "Profile linking when Google and GitHub return slightly different email formats (e.g., 'User@Gmail.com' vs 'user@gmail.com') — normalization exists but only tested with lowercase",
+    "Network timeout handling in exchangeCodeForTokens — the fetch has a 10s timeout but no test simulates a slow provider response",
+    "Behavior when OAuth provider returns valid tokens but the profile endpoint returns a 403 (revoked permissions between token grant and profile fetch)"
+  ],
+  "properties_believed": [
+    {
+      "property": "validateOAuthCallback always returns boolean, never throws, for any combination of inputs including null/undefined",
+      "confidence": "high",
+      "evidence": "try-catch wraps the entire function body; 12 unit tests with valid, invalid, null, undefined, and empty string inputs all pass"
+    },
+    {
+      "property": "findOrCreateUser is idempotent — calling it twice with the same profile returns the same user ID",
+      "confidence": "high",
+      "evidence": "Uses upsert with email as unique key; tested with duplicate calls in session.test.ts"
+    },
+    {
+      "property": "refreshAccessToken is safe to call concurrently for different users",
+      "confidence": "medium",
+      "evidence": "Each call queries by userId+provider, no shared mutable state, but no concurrent test exists"
+    },
+    {
+      "property": "Token encryption uses AES-256-GCM with unique IV per encryption, making stored tokens secure at rest",
+      "confidence": "medium",
+      "evidence": "Implementation uses crypto.randomBytes(16) for IV but no test verifies two encryptions of the same value produce different ciphertexts"
+    },
+    {
+      "property": "The state parameter in OAuth flow is cryptographically random and single-use",
+      "confidence": "low",
+      "evidence": "Uses crypto.randomBytes(32) for generation, but state cleanup after use is time-based (5 min expiry) not immediate deletion — a replay within 5 minutes is theoretically possible"
+    }
+  ],
+  "known_risks": [
+    "State parameter replay window: 5-minute expiry means a captured state could theoretically be reused within that window, though the authorization code itself is single-use at the provider level",
+    "Prisma transaction isolation: findOrCreateUser uses a transaction but the default isolation level may allow phantom reads under high concurrency",
+    "No rate limiting on the callback endpoint — a malicious actor could spam invalid codes to trigger rate limits on the provider's token endpoint, potentially locking out legitimate auth attempts",
+    "GitHub API occasionally returns 502 during high load — the retry logic uses exponential backoff but only 2 retries, which may not be sufficient during GitHub incidents"
+  ],
+  "integration_points": [
+    "Google OAuth2 API (accounts.google.com/o/oauth2/v2/auth, oauth2.googleapis.com/token, googleapis.com/oauth2/v2/userinfo)",
+    "GitHub OAuth API (github.com/login/oauth/authorize, github.com/login/oauth/access_token, api.github.com/user)",
+    "PostgreSQL via Prisma ORM (user table, oauth_accounts table, session table)",
+    "Node.js crypto module for token encryption and state generation"
+  ],
+  "tokens_used": 45200,
+  "timestamp": "2026-03-22T14:45:18Z"
+}

@@ -1,0 +1,27 @@
+# NeuralRelay Pipeline: Startup Fast
+# For startups and solo devs who want speed over ceremony.
+# 2 stages, both sonnet, 1 rework cycle max.
+#
+# When to use:
+#   - Bug fixes, small features, refactors
+#   - Solo development where you know the requirements
+#   - Rapid prototyping and iteration
+#
+# Trade-offs:
+#   - No BA stage: you provide requirements in the task description
+#   - No review stage: test results are the final artifact
+#   - Lower cost and faster execution (~50% savings vs full pipeline)
+
+pipeline:
+  - name: implementation
+    agent: dev-agent
+    model_preference: sonnet
+  - name: testing
+    agent: test-agent
+    model_preference: sonnet
+
+settings:
+  max_rework_cycles: 1
+  handoff_validation: strict
+  handoff_dir: .neuralrelay/handoffs
+  token_tracking: true

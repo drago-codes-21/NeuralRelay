@@ -1,0 +1,37 @@
+# NeuralRelay Pipeline: Enterprise Secure
+# For teams where security is non-negotiable.
+# 5 stages with a dedicated security review between dev and test.
+#
+# When to use:
+#   - Authentication, authorization, or session management changes
+#   - Payment processing or financial data handling
+#   - API endpoints exposed to the public internet
+#   - Any code that handles PII or sensitive data
+#   - Compliance-required security review workflows
+#
+# Trade-offs:
+#   - Additional security review stage adds tokens and time
+#   - Worth it for code where a security bug = incident
+
+pipeline:
+  - name: requirements
+    agent: ba-agent
+    model_preference: sonnet
+  - name: implementation
+    agent: dev-agent
+    model_preference: opus
+  - name: security-review
+    agent: security-agent
+    model_preference: opus
+  - name: testing
+    agent: test-agent
+    model_preference: sonnet
+  - name: review
+    agent: review-agent
+    model_preference: opus
+
+settings:
+  max_rework_cycles: 2
+  handoff_validation: strict
+  handoff_dir: .neuralrelay/handoffs
+  token_tracking: true

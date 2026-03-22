@@ -1,0 +1,15 @@
+{
+  "name": "neuralrelay",
+  "owner": "drago-codes-21",
+  "plugins": [
+    {
+      "name": "neuralrelay",
+      "source": {
+        "type": "github",
+        "url": "https://github.com/drago-codes-21/NeuralRelay"
+      },
+      "description": "Structured handoff protocols for multi-agent pipelines. Passes typed JSON contracts between agents so downstream stages skip redundant codebase exploration.",
+      "version": "1.2.0"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# Claude Code local session data (machine-specific permissions and settings)
+.claude/
+
+# NeuralRelay runtime handoff data (created per-project by /neuralrelay init)
+.neuralrelay/handoffs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

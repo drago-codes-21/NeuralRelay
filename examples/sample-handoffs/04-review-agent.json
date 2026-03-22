@@ -1,0 +1,56 @@
+{
+  "handoff_type": "review_final",
+  "verdict": "changes_requested",
+  "summary": "The OAuth2 implementation is architecturally sound with good separation of concerns, but two high-severity bugs need fixing before merge: the concurrent token refresh race condition and the silent decryption failure. The email case-sensitivity issue should also be addressed to prevent user-facing duplicate account problems.",
+  "issues": [
+    {
+      "severity": "high",
+      "category": "correctness",
+      "description": "Concurrent refreshAccessToken calls for the same user can invalidate the stored refresh token, leaving the user in a broken auth state that persists until manual re-authentication.",
+      "location": "src/lib/tokens.ts:refreshAccessToken (lines 67-89)",
+      "resolution": "Implement a per-user mutex using a database advisory lock: SELECT pg_advisory_xact_lock(hashtext(userId || provider)) at the start of the refresh transaction. This serializes concurrent refreshes for the same user without affecting different users."
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "description": "decryptToken silently returns empty string on decryption failure instead of throwing, causing downstream code to send invalid tokens to OAuth providers.",
+      "location": "src/lib/tokens.ts:decryptToken (lines 34-42)",
+      "resolution": "Remove the catch-and-return-empty pattern. Let decryption errors propagate as DecryptionError. Add a specific catch in the caller (refreshAccessToken) that triggers a full re-authentication flow when decryption fails."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "description": "Profile linking fails when OAuth providers return different email casing for the same user, creating duplicate accounts.",
+      "location": "src/lib/session.ts:findOrCreateUser (line 112)",
+      "resolution": "Normalize email with .toLowerCase().trim() before all database operations. Add a migration to normalize existing emails and create a case-insensitive unique index."
+    },
+    {
+      "severity": "low",
+      "category": "security",
+      "description": "State parameter has a 5-minute replay window. While the authorization code is single-use at the provider level, the state validation alone doesn't prevent replay.",
+      "location": "src/lib/oauth.ts:validateOAuthCallback",
+      "resolution": "Switch from time-based expiry to immediate deletion after use. Store states in a Set or Redis with delete-on-read semantics."
+    },
+    {
+      "severity": "low",
+      "category": "style",
+      "description": "Magic number 10000 (timeout in ms) in exchangeCodeForTokens should be a named constant.",
+      "location": "src/lib/oauth.ts:exchangeCodeForTokens (line 48)",
+      "resolution": "Extract to const OAUTH_TOKEN_EXCHANGE_TIMEOUT_MS = 10_000 at module level."
+    }
+  ],
+  "quality_score": 6,
+  "chain_quality": {
+    "requirements_clarity": 9,
+    "dev_handoff_completeness": 8,
+    "test_coverage_adequacy": 8
+  },
+  "total_tokens": 89100,
+  "recommendations": [
+    "Add a concurrency testing pattern to the project's test utilities — the token refresh race condition could have been caught by the dev agent with a simple Promise.all test helper",
+    "Document the token encryption contract in CLAUDE.md (must throw on failure, never return empty) so future agents don't reintroduce the silent failure pattern",
+    "Consider adding a database-locking utility to the project since concurrent access patterns will recur in other features — avoid reimplementing advisory locks per feature",
+    "The BA's acceptance criteria were excellent — every one was directly testable. The domain glossary helped all downstream agents use consistent terminology"
+  ],
+  "timestamp": "2026-03-22T15:15:47Z"
+}

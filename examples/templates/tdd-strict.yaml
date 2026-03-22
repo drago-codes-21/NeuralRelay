@@ -1,0 +1,46 @@
+# NeuralRelay Pipeline: TDD Strict
+# Test-Driven Development — tests are written BEFORE code.
+# 5 stages: BA → Test (specs) → Dev (implement) → Test (verify) → Review
+#
+# When to use:
+#   - High-reliability features where correctness is critical
+#   - Teams that follow TDD methodology
+#   - Complex logic where defining expected behavior first reduces rework
+#   - Features with clear input/output contracts (parsers, validators, transformers)
+#
+# How it works:
+#   1. BA defines requirements as usual
+#   2. FIRST test stage writes test SPECIFICATIONS from requirements
+#      (test stubs, expected behaviors, edge case definitions — not full tests)
+#   3. Dev implements code to pass the specified tests
+#   4. SECOND test stage verifies implementation matches specifications
+#      and covers the dev's coverage_gaps
+#   5. Review stage evaluates the full chain
+#
+# Trade-offs:
+#   - Two test stages = more tokens spent on testing
+#   - Catches requirement ambiguities earlier (before code is written)
+#   - Dev agent has clearer targets (test specs tell it exactly what to build)
+
+pipeline:
+  - name: requirements
+    agent: ba-agent
+    model_preference: sonnet
+  - name: test-specification
+    agent: test-agent
+    model_preference: sonnet
+  - name: implementation
+    agent: dev-agent
+    model_preference: opus
+  - name: test-verification
+    agent: test-agent
+    model_preference: sonnet
+  - name: review
+    agent: review-agent
+    model_preference: opus
+
+settings:
+  max_rework_cycles: 2
+  handoff_validation: strict
+  handoff_dir: .neuralrelay/handoffs
+  token_tracking: true

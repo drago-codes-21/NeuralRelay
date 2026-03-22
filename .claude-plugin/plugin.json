@@ -1,0 +1,104 @@
+{
+  "name": "neuralrelay",
+  "description": "Structured handoff protocols for multi-agent pipelines. Passes typed JSON contracts between agents so downstream stages skip redundant codebase exploration.",
+  "version": "1.2.0",
+  "license": "MIT",
+  "category": "workflow",
+  "keywords": [
+    "multi-agent",
+    "orchestration",
+    "handoff-protocol",
+    "pipeline",
+    "process-intelligence",
+    "cost-optimization"
+  ],
+  "author": {
+    "name": "Sarthak Nalawade",
+    "github": "drago-codes-21"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drago-codes-21/NeuralRelay"
+  },
+  "agents": [
+    {
+      "name": "ba-agent",
+      "description": "Business Analyst — analyzes tasks and produces structured requirements handoffs",
+      "path": "agents/ba-agent.md"
+    },
+    {
+      "name": "dev-agent",
+      "description": "Senior Developer — implements features and produces dev-to-test handoffs with coverage gaps and believed properties",
+      "path": "agents/dev-agent.md"
+    },
+    {
+      "name": "test-agent",
+      "description": "Test Engineer — priority-ordered testing focused on coverage gaps, produces test-to-review handoffs",
+      "path": "agents/test-agent.md"
+    },
+    {
+      "name": "review-agent",
+      "description": "Tech Lead Reviewer — reviews code and handoff chain quality, produces final review verdicts",
+      "path": "agents/review-agent.md"
+    },
+    {
+      "name": "process-manager",
+      "description": "Pipeline Orchestrator — manages agent execution, handoff validation, rework loops, and token tracking",
+      "path": "agents/process-manager.md"
+    },
+    {
+      "name": "security-agent",
+      "description": "Security Reviewer — focused security audit for authentication, injection, secrets exposure, and dependency vulnerabilities",
+      "path": "agents/security-agent.md"
+    }
+  ],
+  "commands": [
+    {
+      "name": "neuralrelay init",
+      "description": "Initialize NeuralRelay in the current project",
+      "path": "commands/init.md"
+    },
+    {
+      "name": "neuralrelay start",
+      "description": "Start a full pipeline run with a task description",
+      "path": "commands/start.md"
+    },
+    {
+      "name": "neuralrelay status",
+      "description": "Show current pipeline status and token usage",
+      "path": "commands/status.md"
+    },
+    {
+      "name": "neuralrelay quick",
+      "description": "Run a lightweight 2-stage pipeline (dev + test) for simple tasks",
+      "path": "commands/quick.md"
+    },
+    {
+      "name": "neuralrelay chain",
+      "description": "Visualize a completed handoff chain in human-readable format",
+      "path": "commands/chain.md"
+    },
+    {
+      "name": "neuralrelay report",
+      "description": "Generate cost and quality analytics across pipeline runs",
+      "path": "commands/report.md"
+    }
+  ],
+  "skills": [
+    {
+      "name": "handoff-protocol",
+      "description": "Structured Handoff Protocol knowledge — auto-loaded to teach agents how to write and consume typed handoffs",
+      "path": "skills/handoff-protocol.md"
+    }
+  ],
+  "schemas": [
+    "schemas/requirements.schema.json",
+    "schemas/dev-to-test.schema.json",
+    "schemas/test-to-review.schema.json",
+    "schemas/review-final.schema.json"
+  ],
+  "configuration": {
+    "file": "neuralrelay.yaml",
+    "example": "examples/neuralrelay.yaml"
+  }
+}

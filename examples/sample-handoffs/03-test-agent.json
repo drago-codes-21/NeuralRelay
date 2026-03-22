@@ -1,0 +1,60 @@
+{
+  "handoff_type": "test_to_review",
+  "test_summary": {
+    "total": 34,
+    "passing": 31,
+    "failing": 3,
+    "skipped": 1,
+    "coverage_delta": "+12.4%"
+  },
+  "property_verification": {
+    "confirmed": [
+      "validateOAuthCallback always returns boolean, never throws, for any combination of inputs including null/undefined — tested with 20 additional edge cases including Symbol, BigInt, and circular object references",
+      "findOrCreateUser is idempotent — called 5 times with identical profile, same user ID returned each time",
+      "refreshAccessToken is safe to call concurrently for different users — ran 10 parallel calls with different user IDs, no conflicts"
+    ],
+    "falsified": [
+      "Token encryption uses AES-256-GCM with unique IV per encryption — FALSIFIED: two encryptions of the same token value produce different ciphertexts (correct), BUT decryption fails silently and returns empty string instead of throwing when given a corrupted ciphertext, which downstream code interprets as an empty token rather than an error"
+    ],
+    "inconclusive": [
+      "The state parameter is cryptographically random and single-use — confirmed crypto.randomBytes(32) is used, but could not test the replay window in an isolated unit test without a real HTTP server; the 5-minute expiry window remains a theoretical risk"
+    ]
+  },
+  "bugs_found": [
+    {
+      "severity": "high",
+      "description": "refreshAccessToken race condition causes duplicate sessions. When two concurrent refresh calls execute for the SAME user, both read the current refresh token, both send it to the provider, the first succeeds but the provider invalidates the old refresh token, and the second call receives an invalid_grant error that is caught but silently swallowed — leaving the user with a stale token in the database.",
+      "location": "src/lib/tokens.ts:refreshAccessToken (lines 67-89)",
+      "counterexample": "Call refreshAccessToken('user-1', 'google') twice in Promise.all(). First resolves with new token. Second rejects with invalid_grant, catch block logs warning but doesn't update DB. DB now contains the invalidated refresh token from before the first call's update propagated.",
+      "suggested_fix": "Add a distributed lock or mutex per userId+provider. Alternatively, use an atomic compare-and-swap: read the current refresh token, attempt update only if DB token matches what was read. If mismatch, re-read and retry."
+    },
+    {
+      "severity": "high",
+      "description": "Silent decryption failure in token retrieval returns empty string instead of throwing. When stored token ciphertext is corrupted (e.g., database encoding issue or key rotation), decryptToken catches the error and returns '' instead of throwing. Downstream code treats '' as a valid but empty token, leading to 401s from the provider that are misattributed to token expiry.",
+      "location": "src/lib/tokens.ts:decryptToken (lines 34-42)",
+      "counterexample": "Call decryptToken('not-a-valid-ciphertext'). Returns '' instead of throwing DecryptionError. Caller then passes '' as Bearer token to provider API.",
+      "suggested_fix": "Remove the try-catch in decryptToken or rethrow as a typed DecryptionError. Let the caller decide whether to handle gracefully or refresh. An empty token is never a valid state."
+    },
+    {
+      "severity": "medium",
+      "description": "Email case sensitivity in profile linking creates duplicate accounts. findOrCreateUser uses email from OAuth profile directly in the Prisma where clause without normalization. Google returns 'User@Gmail.com' while GitHub returns 'user@gmail.com' for the same person, resulting in two separate user records.",
+      "location": "src/lib/session.ts:findOrCreateUser (line 112)",
+      "counterexample": "Sign in with Google (email: 'Alice@Example.com'), then sign in with GitHub (email: 'alice@example.com'). Two user records are created. Dashboard shows different profiles depending on which provider was used last.",
+      "suggested_fix": "Add .toLowerCase().trim() to email before the Prisma query. Also add a case-insensitive unique index on the email column: @@unique([email], map: \"user_email_ci\") with a raw SQL migration for case-insensitive collation."
+    }
+  ],
+  "test_files_created": [
+    "src/lib/__tests__/oauth-integration.test.ts",
+    "src/lib/__tests__/tokens-concurrent.test.ts",
+    "src/lib/__tests__/session-linking.test.ts"
+  ],
+  "remaining_risks": [
+    "State parameter replay within 5-minute window could not be tested without integration setup — remains a theoretical CSRF risk if authorization codes are intercepted",
+    "GitHub API 502 retry behavior not tested under real conditions — backoff logic is unit-tested but actual failure modes during GitHub incidents may differ",
+    "Prisma transaction isolation level impact on findOrCreateUser under high concurrency not tested — would require load testing with real database",
+    "Network timeout in exchangeCodeForTokens (10s) was tested with mock but real-world slow responses may behave differently due to keep-alive and connection pooling"
+  ],
+  "recommended_focus_for_reviewer": "The concurrent refreshAccessToken race condition in src/lib/tokens.ts:67-89 — this is a high-severity bug that can leave users with invalidated refresh tokens in the database, causing persistent auth failures that only resolve by re-authenticating. The fix requires a locking mechanism that doesn't exist in the current codebase.",
+  "tokens_used": 28400,
+  "timestamp": "2026-03-22T15:02:33Z"
+}

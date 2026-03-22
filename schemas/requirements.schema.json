@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://neuralrelay.dev/schemas/requirements.schema.json",
+  "title": "Requirements Handoff",
+  "description": "BA agent output consumed by all downstream agents. Defines what needs to be built, acceptance criteria, constraints, and scope boundaries.",
+  "type": "object",
+  "required": [
+    "handoff_type",
+    "task_summary",
+    "acceptance_criteria",
+    "technical_constraints",
+    "out_of_scope",
+    "affected_modules",
+    "domain_glossary",
+    "estimated_complexity",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "handoff_type": {
+      "type": "string",
+      "const": "requirements",
+      "description": "Handoff type identifier. Always 'requirements' for this schema."
+    },
+    "task_summary": {
+      "type": "string",
+      "description": "One-line summary of what needs to be built. Should be specific enough that a developer can understand the goal without reading the full task description.",
+      "minLength": 10
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "description": "List of TESTABLE criteria. Each criterion must be verifiable by the test agent — if you can't write a test for it, rewrite it. Bad: 'good user experience'. Good: 'login completes in under 3 seconds'.",
+      "items": {
+        "type": "string",
+        "minLength": 10
+      },
+      "minItems": 1
+    },
+    "technical_constraints": {
+      "type": "array",
+      "description": "Existing system constraints that the developer must respect. Include framework versions, API contracts, database schemas, or architectural patterns already in place.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "description": "Explicitly excluded items. Prevents downstream agents from wasting tokens on work that was deliberately excluded. Be specific — 'mobile support' not 'other stuff'.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "affected_modules": {
+      "type": "array",
+      "description": "File paths or module names likely to be modified. Determined by actually tracing through the codebase, not guessing.",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "domain_glossary": {
+      "type": "object",
+      "description": "Key-value pairs of domain terms used in this task and their meaning in this codebase's context. Prevents downstream agents from misinterpreting domain-specific language.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "estimated_complexity": {
+      "type": "string",
+      "enum": ["simple", "medium", "complex"],
+      "description": "Complexity estimate based on number of affected files, integration points, and risk of regressions. simple: 1-3 files, no integrations. medium: 4-10 files or external integrations. complex: 10+ files, multiple integrations, or high regression risk."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this handoff was produced."
+    }
+  }
+}
